@@ -11,10 +11,24 @@
 
 </head>
 <body ng-app="journyApp">
+	<my-card my-title="'Ilfracombe'"
+           my-pic="'http://teropa.info/ilfracombe.jpg'">
+    <p id="printJason">Ilfracombe /ˈɪlfrəkuːm/ is a seaside resort and civil parish on the North Devon coast, England with a small harbour, surrounded by cliffs.</p>
+    <p>The parish stretches along the coast from 'The Coastguard Cottages' in Hele Bay toward the east and 4 miles along The Torrs to Lee Bay toward the west. The resort is hilly and the highest point within the parish boundary is at 'Hore Down Gate', 2 miles inland and 860 feet (270 m) above sea level.</p>
+  </my-card>
+  
+  <script type="text/ng-template" id="myCard">
+    <article>
+      <img class="pic" ng-src="{{ctrl.pic}}">
+      <h2>{{ctrl.title}}</h2>
+      <div class="content"></div>
+    </article>
+  </script>
+  
 	<div ng-controller="journyCtrl">
 		<div ng-repeat = "message in messages"> {{message.text}}</div>
 		<input type="text" class="form-control" ng-model="input"></input>
-		<button ng-click="addToDB()">Submit</button>
+		<button id="print" ng-click="addToDB()">Submit</button>
 
 	</div>	
 	<script src="angular/angular.js"></script>
@@ -22,9 +36,140 @@
 	<script src="js/factory.js"></script>
 	<script src="js/controller.js"></script>
 	<script type="text/javascript" src="js/xml2json.js"></script>
+
+<div id="images"></div>
+
+<h3>Topics</h3>
+
+<table id="topic_table">
+	<tr>
+		<th><h3>Content</h3> </th>
+	</tr>
+ 	<tr id="content">
+ 		<td id="content_data"> </td>
+ 		<td> </td>
+ 	</tr>
+
+
+ </table>
+
+<div id="content_data"></div>
+
+
 <script type="text/javascript">
+
+$(document).ready(function() {
+
+	(function() {
+  var flickerAPI = "https://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?";
+  $.getJSON( flickerAPI, {
+    tags: "snowboarding",
+    tagmode: "any",
+    format: "json"
+  })
+  .done(function( data ) {
+    $.each( data.items, function( i, item ) {
+      $( "<img/>" ).attr( "src", item.media.m ).appendTo( "#images" );
+      if ( i === 3 ) {
+        return false;
+      }
+    });
+  });
+})();
+
+  // retrieve the JSON data from the URL
+  // we have to use JSONP since the URL resides on another domain
+  // API to the $.ajax function: http://api.jquery.com/jQuery.ajax/
+  $.ajax({
+    url: 'http://cooktv.sndimg.com/webcook/sandbox/perf/topics.json',
+    dataType: 'jsonp',
+    jsonpCallback: 'callback', // since it's JSONP this value needs to be the same name as their callback function / it's at the beginning of the JSON
+    success: function(json) {
+      processTopics(json.topics);
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert(textStatus + ' : ' + errorThrown);
+    }
+  });
+  
+  // Process the topics
+  // param: topics - an array of topics
+  function processTopics(topics) {
+    
+    // API to the $.each function: http://api.jquery.com/jQuery.each/
+    $.each(topics, function(index, topic) {
+      
+      // Show the topic name in the HTML
+      $('#topic_table').append("<tr><td><a href='#' class='topic " + topic.name + "'>" + topic.name + "</a></td></tr>");
+      
+      // Store the content information - we can retrieve the content from the topic name
+      // API to the $.data function: http://api.jquery.com/data/
+      $('body').data(topic.name, topic.content);
+      
+      // add the anchor click event
+      addClickEvent(topic.name);
+      
+    });
+  }
+  
+  // Adds a click event that switches the content when clicking on the topic link
+  // param: topic_name - the name of the topic
+  function addClickEvent(topic_name) {
+    
+    $('.' + topic_name).click(function() {
+        
+      // clear out the content area
+      $('#content_data').html('');
+        
+      // retrieve the content data associated to the topic
+      var topic_content = $('body').data(topic_name);
+        
+      // iterate through the content links and display
+      showLinks(topic_content);
+        
+      // cancel the link click action
+      return false;
+    });    
+  }
+  
+  // show the link data
+  // param: topic_content - array of link data
+  function showLinks(topic_content) {
+    
+    // iterate through the content links and display
+    $.each(topic_content, function(i, content) {
+      
+      // create the link data
+      var link = '<a href="' + content.link_src + '">' + content.link_text + '</a>';
+      
+      // show the link data in the HTML
+      $('#content_data').append(link).append('<br />');
+    });
+  }
+  
+
+
+	function processArticles(channel) {
+    
+    // API to the $.each function: http://api.jquery.com/jQuery.each/
+    	$.each(channel, function(index, article) {
+      
+      // Show the topic name in the HTML
+      $('#topic_table').append("<tr><td><a href='#' class='topic " + article.image + "'>" + article.image + "</a></td></tr>");
+      
+      // Store the content information - we can retrieve the content from the topic name
+      // API to the $.data function: http://api.jquery.com/data/
+      $('body').data(article.image, article.image.title);
+      
+      // add the anchor click event
+      addClickEvent(article.name);
+      
+    });
+ 	}
+
+
 function fetchAndParseXML(url, success) {
-$.ajax({
+	$.ajax({
 	 	type: "GET",
 	 	url: url,
 	 	dataType: "xml",
@@ -32,12 +177,27 @@ $.ajax({
 	 		success(xml2json(data));
 	 	}
 	 	});
- }
- fetchAndParseXML('cd_catalog.xml', function(data) {
- 	console.log('hurray!', data);
- })
+		 }
+	fetchAndParseXML('ynet.xml', function(data) {
+ 		console.log('hurray!', data);
+ 		debugger;
+   		processArticles(data.channel);
+   		
+   		});
+
+
+    // ProcessCDs unto page
+
+    // Process the topics
+  // param: topics - an array of topics
+  
+});
+
+
+ 	
+ 
 // Append "RSS Title" to #someElement 
 </script>
-
+<p id="jason-text"></p> 
 </body>
 </html>
